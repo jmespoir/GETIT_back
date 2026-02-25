@@ -14,8 +14,6 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "task")
@@ -56,6 +54,7 @@ public class Task {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
 
     @Builder
     private Task(Integer week, TaskType type, String title, String description, LocalDateTime deadline) {
