@@ -1,5 +1,6 @@
 package com.getit.domain.assignment.entity;
 
+import com.getit.domain.assignment.Status;
 import com.getit.domain.assignment.TaskType;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
@@ -51,10 +52,6 @@ public class Task {
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
-    @LastModifiedDate
-    @Column(name = "updated_at")
-    private LocalDateTime updatedAt;
-
 
     @Builder
     private Task(Integer week, TaskType type, String title, String description, LocalDateTime deadline) {
@@ -65,25 +62,11 @@ public class Task {
         this.deadline = deadline;
     }
 
-    public void updateTask(Integer week, TaskType type, String title, String description, LocalDateTime deadline) {
-        if (week == null && type == null  && title == null && description == null && deadline == null) {
-            throw new IllegalArgumentException("업데이트 할 데이터가 없습니다.");
-        }
-
-        if (week != null) {
-            this.week = week;
-        }
-        if (type != null) {
-            this.type = type;
-        }
-        if (title != null && !title.isBlank()) {
-            this.title = title;
-        }
-        if (description != null) {
-            this.description = description;
-        }
-        if (deadline != null) {
-            this.deadline = deadline;
+    public Status determineSubmitStatus() {
+        if (deadline != null && LocalDateTime.now().isAfter(deadline)) {
+            return Status.LATE;
+        } else {
+            return Status.SUBMITTED;
         }
     }
 }

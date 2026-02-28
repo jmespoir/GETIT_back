@@ -1,7 +1,8 @@
 package com.getit.domain.assignment.service;
 
-import com.getit.domain.assignment.dto.AssignmentRequest;
+import com.getit.domain.assignment.dto.AssignmentSubmitRequest;
 import com.getit.domain.assignment.dto.AssignmentResultDto;
+import com.getit.domain.assignment.dto.AssignmentUpdateRequest;
 import com.getit.domain.assignment.entity.Assignment;
 import com.getit.domain.assignment.entity.AssignmentFile;
 import com.getit.domain.assignment.entity.Task;
@@ -40,7 +41,7 @@ public class AssignmentService {
     private final FileStorageService fileStorageService;
 
     @Transactional
-    public AssignmentResultDto createAssignment(Long memberId, List<MultipartFile> files, AssignmentRequest dto) {
+    public AssignmentResultDto createAssignment(Long memberId, List<MultipartFile> files, AssignmentSubmitRequest dto) {
         if (files == null || files.isEmpty() || (files.size() == 1 && files.get(0).isEmpty())) {
             throw new IllegalArgumentException("첨부된 파일이 없습니다. 최소 1개 이상의 파일을 업로드해야 합니다.");
         }
@@ -57,6 +58,7 @@ public class AssignmentService {
         Assignment assignment = Assignment.builder()
                 .task(task)
                 .member(member)
+                .status(task.determineSubmitStatus())
                 .build();
 
         try {

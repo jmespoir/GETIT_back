@@ -46,7 +46,7 @@ public class Assignment {
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column
-    private Status status = Status.SUBMITTED;
+    private Status status;
 
     @CreatedDate
     @Column(name = "submitted_at", updatable = false, nullable = false)
@@ -58,8 +58,13 @@ public class Assignment {
 
 
     @Builder
-    private Assignment(Task task, Member member, String filePath) {
+    private Assignment(Task task, Member member, Status status) {
         this.task = task;
         this.member = member;
+        this.status = status;
+    }
+
+    public void updateStatus(Status status) {
+        this.status = status;
     }
 }
