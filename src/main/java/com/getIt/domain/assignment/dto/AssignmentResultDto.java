@@ -1,13 +1,13 @@
 package com.getit.domain.assignment.dto;
 
-import lombok.Builder;
 import lombok.Getter;
+import lombok.experimental.SuperBuilder;
 
 import java.util.List;
 
 @Getter
-@Builder
+@SuperBuilder
 public class AssignmentResultDto {
-    private List<String> successFiles;
-    private List<String> failedFiles;
+    protected List<String> successFiles;
+    protected List<String> failedFiles;
 }

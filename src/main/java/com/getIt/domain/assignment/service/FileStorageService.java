@@ -1,5 +1,6 @@
 package com.getit.domain.assignment.service;
 
+import com.getit.domain.assignment.entity.AssignmentFile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -9,7 +10,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.UUID;
 
 @Slf4j
 @Service
@@ -33,13 +33,10 @@ public class FileStorageService {
         }
     }
 
-    public String createAssignmentDir() {
-        String dirName = UUID.randomUUID().toString();
+    public void createAssignmentDir(String dirName) {
         Path dirPath = Path.of(storagePath, dirName);
-
         try {
             Files.createDirectories(dirPath);
-            return dirName;
         } catch (IOException e) {
             throw new IllegalStateException("과제 제출 디렉토리를 생성할 수 없습니다.", e);
         }
@@ -54,6 +51,23 @@ public class FileStorageService {
             return filePath.toString();
         } catch (IOException e) {
             throw new IllegalStateException("파일 저장 중 문제가 발생했습니다.", e);
+        }
+    }
+
+    public void deleteFile(String filePath) {
+        if (filePath == null || filePath.isBlank()) {
+            return;
+        }
+        try {
+            Path path = Path.of(filePath);
+            boolean deleted = Files.deleteIfExists(path);
+            if (deleted) {
+                log.info("물리적 파일 삭제 완료: {}", filePath);
+            } else {
+                log.warn("삭제하려는 물리적 파일이 존재하지 않습니다: {}", filePath);
+            }
+        } catch (IOException e) {
+            log.error("물리적 파일 삭제 중 시스템 오류: {}", filePath, e);
         }
     }
 

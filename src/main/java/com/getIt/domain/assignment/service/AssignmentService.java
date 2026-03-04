@@ -1,8 +1,6 @@
 package com.getit.domain.assignment.service;
 
-import com.getit.domain.assignment.dto.AssignmentSubmitRequest;
-import com.getit.domain.assignment.dto.AssignmentResultDto;
-import com.getit.domain.assignment.dto.AssignmentUpdateRequest;
+import com.getit.domain.assignment.dto.*;
 import com.getit.domain.assignment.entity.Assignment;
 import com.getit.domain.assignment.entity.AssignmentFile;
 import com.getit.domain.assignment.entity.Task;
@@ -15,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -22,6 +21,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -55,10 +55,14 @@ public class AssignmentService {
         Task task = taskRepository.findByTypeAndWeek(dto.getType(), dto.getWeek())
                 .orElseThrow(() -> new IllegalArgumentException("해당 task를 찾을 수 없습니다."));
 
+        String dirName = UUID.randomUUID().toString();
+
         Assignment assignment = Assignment.builder()
                 .task(task)
                 .member(member)
                 .status(task.determineSubmitStatus())
+                .dirName(dirName)
+                .comment(dto.getComment())
                 .build();
 
         try {
@@ -67,47 +71,147 @@ public class AssignmentService {
             throw new IllegalStateException("이미 제출된 과제입니다.");
         }
 
-        String dirName = fileStorageService.createAssignmentDir();
+        fileStorageService.createAssignmentDir(dirName);
 
-        List<String> successFileNames = new ArrayList<>();
-        List<String> failedFileNames = new ArrayList<>();
         try {
-            for (MultipartFile file : files) {
-                String fileName = file.getOriginalFilename();
-                String extension = StringUtils.getFilenameExtension(fileName);
-
-                if (!StringUtils.hasText(fileName)) {
-                    log.warn("올바르지 않은 이름의 파일 스킵됨({})", fileName);
-                    failedFileNames.add(fileName != null ? fileName : "Unknown_File");
-                } else if (file.isEmpty()) {
-                    log.warn("비어있는 파일 스킵됨({})", fileName);
-                    failedFileNames.add(fileName);
-                }
-
-                String filePath = fileStorageService.storeFile(file, dirName);
-
-                AssignmentFile assignmentFile = AssignmentFile.builder()
-                        .assignment(assignment)
-                        .fileName(fileName)
-                        .filePath(filePath)
-                        .build();
-                assignmentFileRepository.save(assignmentFile);
-
-                successFileNames.add(fileName);
-            }
-
-            if (successFileNames.isEmpty()) {
-                throw new IllegalArgumentException("유효한 파일이 없습니다.");
-            }
-
-            return AssignmentResultDto.builder()
-                    .successFiles(successFileNames)
-                    .failedFiles(failedFileNames)
-                    .build();
-
+            return processAndSaveFiles(files, assignment, dirName);
         } catch (Exception e) {
             fileStorageService.deleteDir(dirName); // 롤백
             throw new IllegalStateException("저장 중 오류 발생으로 전체 롤백되었습니다.", e); // 트랜잭션 동작
         }
     }
+
+    @Transactional
+    public AssignmentUpdateResultDto updateAssignment(
+            Long memberId, List<MultipartFile> newFiles, Long assignmentId, AssignmentUpdateRequest dto
+    ) {
+        Assignment assignment = assignmentRepository.findById(assignmentId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 과제를 찾을 수 없습니다."));
+
+        if (!assignment.getMember().getId().equals(memberId)) {
+            throw new AccessDeniedException("본인이 제출한 과제만 수정할 수 있습니다.");
+        }
+
+        // ================================================================================================ //
+        int existingFileCount = assignment.getAssignmentFiles().size();
+        int deletedFileCount = (dto != null && dto.getDeletedFiles() != null) ? dto.getDeletedFiles().size() : 0;
+
+        int actualNewFileCount = 0;
+        boolean hasRealNewFiles =
+                (newFiles != null && !newFiles.isEmpty() && !(newFiles.size() == 1 && newFiles.get(0).isEmpty()));
+
+        if (hasRealNewFiles) {
+            actualNewFileCount = newFiles.size();
+        }
+
+        int finalFileCount = existingFileCount - deletedFileCount + actualNewFileCount;
+
+        if (finalFileCount > maxFileCount) {
+            throw new IllegalArgumentException("파일은 최대 " + maxFileCount + "개 까지만 유지할 수 있습니다.");
+        }
+
+        if (finalFileCount < 1) {
+            throw new IllegalArgumentException("최소 1개 이상의 파일이 유지되어야 합니다.");
+        }
+        // ================================================================================================ //
+
+        AssignmentResultDto result = null;
+        if (hasRealNewFiles) {
+            String dirName = assignment.getDirName();
+            result = processAndSaveFiles(newFiles, assignment, dirName);
+        }
+
+        if (deletedFileCount > 0) {
+            List<String> deletedFilePaths = assignment.getAssignmentFiles().stream()
+                    .filter(file -> dto.getDeletedFiles().contains(file.getId()))
+                    .map(AssignmentFile::getFilePath)
+                    .toList();
+
+            for (String filePath : deletedFilePaths) {
+                fileStorageService.deleteFile(filePath);
+            }
+            assignment.getAssignmentFiles().removeIf(file -> dto.getDeletedFiles().contains(file.getId()));
+        }
+
+        assignment.updateStatus(assignment.getTask().determineSubmitStatus());
+        assignment.updateComment(dto != null && StringUtils.hasText(dto.getComment()) ? dto.getComment() : null);
+
+        return AssignmentUpdateResultDto.builder()
+                .assignmentId(assignment.getId())
+                .status(assignment.getStatus())
+                .updatedAt(assignment.getUpdatedAt().toString())
+                .successFiles(result != null ? result.getSuccessFiles() : new ArrayList<>())
+                .failedFiles(result != null ? result.getFailedFiles() : new ArrayList<>())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AssignmentReadResultDto> getAssignments(Long memberId) {
+        List<Assignment> assignments = assignmentRepository.findAllByMemberIdWithTaskAndFiles(memberId);
+        return assignments.stream()
+                .map(assignment -> {
+                    Task task = assignment.getTask();
+                    return AssignmentReadResultDto.builder()
+                            .assignmentId(assignment.getId())
+                            .week(task.getWeek())
+                            .type(task.getType())
+                            .status(assignment.getStatus())
+                            .files(
+                                    assignment.getAssignmentFiles().stream()
+                                            .map(file -> AssignmentReadResultDto.AssignmentFileInfo.builder()
+                                                    .fileId(file.getId())
+                                                    .fileName(file.getFileName())
+                                                    .build()
+                                            ).toList()
+                            )
+                            .createdAt(assignment.getSubmittedAt() != null ? assignment.getSubmittedAt().toString() : null)
+                            .updatedAt(assignment.getUpdatedAt() != null ? assignment.getUpdatedAt().toString() : null)
+                            .deadline(task.getDeadline() != null ? task.getDeadline().toString() : null)
+                            .build();
+                })
+                .toList();
+    }
+
+    private AssignmentResultDto processAndSaveFiles(
+            List<MultipartFile> files, Assignment assignment, String dirName
+    ) {
+        List<String> successFileNames = new ArrayList<>();
+        List<String> failedFileNames = new ArrayList<>();
+        for (MultipartFile file : files) {
+            String fileName = file.getOriginalFilename();
+            String extension = StringUtils.getFilenameExtension(fileName);
+
+            if (!StringUtils.hasText(fileName)) {
+                log.warn("올바르지 않은 이름의 파일 스킵됨({})", fileName);
+                failedFileNames.add(fileName != null ? fileName : "Unknown_File");
+                continue;
+            }
+            if (file.isEmpty()) {
+                log.warn("비어있는 파일 스킵됨({})", fileName);
+                failedFileNames.add(fileName);
+                continue;
+            }
+
+            String filePath = fileStorageService.storeFile(file, dirName);
+
+            AssignmentFile assignmentFile = AssignmentFile.builder()
+                    .assignment(assignment)
+                    .fileName(fileName)
+                    .filePath(filePath)
+                    .build();
+            assignment.addAssignmentFile(assignmentFile);
+
+            successFileNames.add(fileName);
+        }
+
+        if (successFileNames.isEmpty()) {
+            throw new IllegalArgumentException("유효한 파일이 없습니다.");
+        }
+
+        return AssignmentResultDto.builder()
+                .successFiles(successFileNames)
+                .failedFiles(failedFileNames)
+                .build();
+    }
 }
+

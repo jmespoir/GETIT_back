@@ -1,8 +1,8 @@
+// TODO: 향후 UX 개선을 위해 '과제 전체 목록 조회'와 '과제 상세(파일/코멘트) 조회' API로 분리 필요
+
 package com.getit.domain.assignment.controller;
 
-import com.getit.domain.assignment.dto.AssignmentRequest;
-import com.getit.domain.assignment.dto.AssignmentResultDto;
-import com.getit.domain.assignment.dto.AssignmentTemporaryResponse;
+import com.getit.domain.assignment.dto.*;
 import com.getit.domain.assignment.service.AssignmentService;
 import com.getit.domain.auth.dto.PrincipalDetails;
 import jakarta.validation.Valid;
@@ -20,7 +20,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/assignments")
 @RequiredArgsConstructor
-@PreAuthorize( "hasRole('MEMBER') ")
+@PreAuthorize("hasRole('MEMBER')")
 public class AssignmentController {
 
     private final AssignmentService assignmentService;
@@ -29,7 +29,7 @@ public class AssignmentController {
     public ResponseEntity<AssignmentTemporaryResponse<AssignmentResultDto>> createAssignment(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
             @RequestPart(value = "files") List<MultipartFile> files,
-            @RequestPart(value = "request") @Valid AssignmentRequest request
+            @RequestPart(value = "request") @Valid AssignmentSubmitRequest request
             ) {
         AssignmentResultDto result = assignmentService
                 .createAssignment(principalDetails.getMember().getId(), files, request);
@@ -39,6 +39,38 @@ public class AssignmentController {
                         result.getFailedFiles().isEmpty()
                         ? "모든 과제 파일이 성공적으로 제출되었습니다."
                         : "일부 파일 업로드에 성공했습니다.",
+                        result
+                ));
+    }
+
+    @PatchMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<AssignmentTemporaryResponse<AssignmentUpdateResultDto>> updateAssignment(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
+            @PathVariable Long id,
+            @RequestPart(value = "request", required = false) @Valid AssignmentUpdateRequest request
+    ) {
+        AssignmentUpdateResultDto result =
+                assignmentService.updateAssignment(principalDetails.getMember().getId(), files, id, request);
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(AssignmentTemporaryResponse.success(
+                        result.getFailedFiles().isEmpty()
+                        ? "모든 수정 사항이 성공적으로 반영되었습니다."
+                        : "일부 수정사항만 반영되었습니다.",
+                        result
+                ));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<AssignmentTemporaryResponse<List<AssignmentReadResultDto>>> getMyAssignments(
+            @AuthenticationPrincipal PrincipalDetails principalDetails
+    ) {
+        List<AssignmentReadResultDto> result = assignmentService.getAssignments(principalDetails.getMember().getId());
+        return ResponseEntity
+                .status(HttpStatus.OK)
+                .body(AssignmentTemporaryResponse.success(
+                        "과제 제출 내역을 조회했습니다.",
                         result
                 ));
     }

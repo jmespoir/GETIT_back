@@ -16,6 +16,8 @@ import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "assignment", uniqueConstraints = {
@@ -48,6 +50,16 @@ public class Assignment {
     @Column
     private Status status;
 
+    @Column(columnDefinition = "TEXT")
+    private String comment;
+
+    @NotBlank
+    @Column(nullable = false)
+    private String dirName;
+
+    @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<AssignmentFile> assignmentFiles = new ArrayList<>();
+
     @CreatedDate
     @Column(name = "submitted_at", updatable = false, nullable = false)
     private LocalDateTime submittedAt;
@@ -58,13 +70,25 @@ public class Assignment {
 
 
     @Builder
-    private Assignment(Task task, Member member, Status status) {
+    private Assignment(Task task, Member member, Status status, String dirName, String comment) {
         this.task = task;
         this.member = member;
         this.status = status;
+        this.dirName = dirName;
+        this.comment = comment;
     }
 
     public void updateStatus(Status status) {
         this.status = status;
+    }
+
+    public void updateComment(String comment) {
+        if (comment != null) {
+            this.comment = comment;
+        }
+    }
+
+    public void addAssignmentFile(AssignmentFile file) {
+        this.assignmentFiles.add(file);
     }
 }
