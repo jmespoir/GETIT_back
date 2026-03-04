@@ -16,6 +16,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -94,7 +96,19 @@ public class AssignmentService {
 
         // ================================================================================================ //
         int existingFileCount = assignment.getAssignmentFiles().size();
-        int deletedFileCount = (dto != null && dto.getDeletedFiles() != null) ? dto.getDeletedFiles().size() : 0;
+        List<Long> requestedDeletedFileIds = (dto != null && dto.getDeletedFiles() != null)
+                ? dto.getDeletedFiles().stream().distinct().toList()
+                : List.of();
+        List<Long> currentFileIds = assignment.getAssignmentFiles().stream().map(AssignmentFile::getId).toList();
+
+        List<Long> validDeleteFileIds = requestedDeletedFileIds.stream()
+                .filter(currentFileIds::contains)
+                .toList();
+
+        if (validDeleteFileIds.size() != requestedDeletedFileIds.size()) {
+            throw new IllegalArgumentException("삭제 대상 파일 ID가 유효하지 않습니다.");
+        }
+        int deletedFileCount = validDeleteFileIds.size();
 
         int actualNewFileCount = 0;
         boolean hasRealNewFiles =
@@ -116,33 +130,65 @@ public class AssignmentService {
         // ================================================================================================ //
 
         AssignmentResultDto result = null;
-        if (hasRealNewFiles) {
-            String dirName = assignment.getDirName();
-            result = processAndSaveFiles(newFiles, assignment, dirName);
-        }
+        List<String> deletedFilePaths = new ArrayList<>();
 
-        if (deletedFileCount > 0) {
-            List<String> deletedFilePaths = assignment.getAssignmentFiles().stream()
-                    .filter(file -> dto.getDeletedFiles().contains(file.getId()))
-                    .map(AssignmentFile::getFilePath)
-                    .toList();
-
-            for (String filePath : deletedFilePaths) {
-                fileStorageService.deleteFile(filePath);
+        try {
+            if (hasRealNewFiles) {
+                String dirName = assignment.getDirName();
+                result = processAndSaveFiles(newFiles, assignment, dirName);
             }
-            assignment.getAssignmentFiles().removeIf(file -> dto.getDeletedFiles().contains(file.getId()));
+
+            if (!validDeleteFileIds.isEmpty()) {
+                deletedFilePaths = assignment.getAssignmentFiles().stream()
+                        .filter(file -> validDeleteFileIds.contains(file.getId()))
+                        .map(AssignmentFile::getFilePath)
+                        .toList();
+
+                // DB 우선 삭제
+                assignment.getAssignmentFiles().removeIf(file -> validDeleteFileIds.contains(file.getId()));
+            }
+
+            assignment.updateStatus(assignment.getTask().determineSubmitStatus());
+            assignment.updateComment(dto != null && StringUtils.hasText(dto.getComment()) ? dto.getComment() : null);
+
+            if (!deletedFilePaths.isEmpty()) {
+                List<String> finalDeletedFilePaths = deletedFilePaths;
+                TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        for (String filePath : finalDeletedFilePaths) {
+                            try {
+                                fileStorageService.deleteFile(filePath);
+                            } catch (Exception e) {
+                                log.error("DB commit 완료 후 물리 파일 삭제 실패: {}", filePath, e);
+                            }
+                        }
+                    }
+
+                });
+            }
+
+            return AssignmentUpdateResultDto.builder()
+                    .assignmentId(assignment.getId())
+                    .status(assignment.getStatus())
+                    .updatedAt(assignment.getUpdatedAt().toString())
+                    .successFiles(result != null ? result.getSuccessFiles() : new ArrayList<>())
+                    .failedFiles(result != null ? result.getFailedFiles() : new ArrayList<>())
+                    .build();
+        } catch (Exception e) {
+            if (hasRealNewFiles) {
+                for (AssignmentFile file : assignment.getAssignmentFiles()) {
+                    if (file.getId() == null) {
+                        try {
+                            fileStorageService.deleteFile(file.getFilePath());
+                        } catch (Exception ex) {
+                            log.error("보상 트랜잭션 실패{}", file.getFilePath(), ex);
+                        }
+                    }
+                }
+            }
+            throw e;
         }
-
-        assignment.updateStatus(assignment.getTask().determineSubmitStatus());
-        assignment.updateComment(dto != null && StringUtils.hasText(dto.getComment()) ? dto.getComment() : null);
-
-        return AssignmentUpdateResultDto.builder()
-                .assignmentId(assignment.getId())
-                .status(assignment.getStatus())
-                .updatedAt(assignment.getUpdatedAt().toString())
-                .successFiles(result != null ? result.getSuccessFiles() : new ArrayList<>())
-                .failedFiles(result != null ? result.getFailedFiles() : new ArrayList<>())
-                .build();
     }
 
     @Transactional(readOnly = true)
@@ -180,6 +226,12 @@ public class AssignmentService {
         for (MultipartFile file : files) {
             String fileName = file.getOriginalFilename();
             String extension = StringUtils.getFilenameExtension(fileName);
+
+            if (!allowedExtensions.contains(extension)) {
+                failedFileNames.add(fileName);
+                log.warn("허용되지 않는 확장자의 파일 스킵됨({})", fileName);
+                continue;
+            }
 
             if (!StringUtils.hasText(fileName)) {
                 log.warn("올바르지 않은 이름의 파일 스킵됨({})", fileName);

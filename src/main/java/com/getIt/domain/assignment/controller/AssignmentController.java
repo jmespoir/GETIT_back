@@ -50,6 +50,14 @@ public class AssignmentController {
             @PathVariable Long id,
             @RequestPart(value = "request", required = false) @Valid AssignmentUpdateRequest request
     ) {
+        boolean hasFiles = files != null && !files.isEmpty() && !files.get(0).isEmpty();
+        boolean hasRequest = request != null &&
+                (request.getComment() != null ||
+                        (request.getDeletedFiles() != null && !request.getDeletedFiles().isEmpty()));
+        if (!hasFiles && !hasRequest) {
+            throw new IllegalArgumentException("수정할 내용이 없습니다.");
+        }
+
         AssignmentUpdateResultDto result =
                 assignmentService.updateAssignment(principalDetails.getMember().getId(), files, id, request);
         return ResponseEntity

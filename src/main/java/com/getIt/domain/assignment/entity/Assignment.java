@@ -18,6 +18,7 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 @Table(name = "assignment", uniqueConstraints = {
@@ -79,7 +80,7 @@ public class Assignment {
     }
 
     public void updateStatus(Status status) {
-        this.status = status;
+        this.status = Objects.requireNonNull(status, "status는 null일 수 없습니다.");
     }
 
     public void updateComment(String comment) {

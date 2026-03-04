@@ -9,8 +9,6 @@ import java.util.List;
 
 public interface AssignmentRepository extends JpaRepository<Assignment, Long> {
 
-    List<Assignment> findAllByMemberId(Long memberId);
-
     @Query("SELECT DISTINCT a FROM Assignment a " +
             "JOIN FETCH a.task " +
             "LEFT JOIN FETCH a.assignmentFiles " +

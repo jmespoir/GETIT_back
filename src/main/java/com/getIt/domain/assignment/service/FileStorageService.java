@@ -10,6 +10,8 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
+import java.util.UUID;
 
 @Slf4j
 @Service
@@ -43,8 +45,20 @@ public class FileStorageService {
     }
 
     public String storeFile(MultipartFile file, String dirName) {
-        String fileName = file.getOriginalFilename();
-        Path filePath = Path.of(storagePath, dirName, fileName);
+        Path baseDir = Path.of(storagePath, dirName).toAbsolutePath().normalize();
+        String originalFileName = Objects.requireNonNull(file.getOriginalFilename(), "파일명이 없습니다.");
+        String safeName = Path.of(originalFileName).getFileName().toString();
+
+        if (safeName.isBlank()) {
+            throw new IllegalArgumentException("유효하지 않은 파일명입니다.");
+        }
+
+        String storeName = UUID.randomUUID() + "_" + safeName;
+        Path filePath = baseDir.resolve(storeName).normalize();
+
+        if (!filePath.startsWith(baseDir)) {
+            throw new IllegalArgumentException("허용되지 않은 파일 경로입니다.");
+        }
 
         try {
             file.transferTo(filePath.toFile());
@@ -67,7 +81,7 @@ public class FileStorageService {
                 log.warn("삭제하려는 물리적 파일이 존재하지 않습니다: {}", filePath);
             }
         } catch (IOException e) {
-            log.error("물리적 파일 삭제 중 시스템 오류: {}", filePath, e);
+            throw new IllegalStateException("물리적 파일 삭제 중 문제가 발생했습니다: [" + filePath + "]", e);
         }
     }
 
