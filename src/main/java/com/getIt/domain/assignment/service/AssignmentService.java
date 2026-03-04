@@ -181,6 +181,12 @@ public class AssignmentService {
             String fileName = file.getOriginalFilename();
             String extension = StringUtils.getFilenameExtension(fileName);
 
+            if (!allowedExtensions.contains(extension)) {
+                failedFileNames.add(fileName);
+                log.warn("허용되지 않는 확장자의 파일 스킵됨({})", fileName);
+                continue;
+            }
+
             if (!StringUtils.hasText(fileName)) {
                 log.warn("올바르지 않은 이름의 파일 스킵됨({})", fileName);
                 failedFileNames.add(fileName != null ? fileName : "Unknown_File");
