@@ -1,9 +1,9 @@
 package com.getit.domain.apply.service;
 
+import com.getit.domain.apply.entity.Application;
 import com.getit.domain.apply.dto.ApplyDraftDataDto;
 import com.getit.domain.apply.dto.ApplyDraftRequest;
 import com.getit.domain.apply.dto.ApplyRequest;
-import com.getit.domain.apply.entity.Application;
 import com.getit.domain.apply.repository.ApplicationRepository;
 import com.getit.domain.member.entity.Member;
 import com.getit.domain.member.repository.MemberRepository;
