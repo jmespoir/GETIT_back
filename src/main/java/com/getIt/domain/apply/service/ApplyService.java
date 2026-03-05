@@ -1,6 +1,7 @@
 package com.getit.domain.apply.service;
 
 import com.getit.domain.apply.dto.ApplyDraftDataDto;
+import com.getit.domain.apply.dto.ApplyDraftRequest;
 import com.getit.domain.apply.dto.ApplyRequest;
 import com.getit.domain.apply.entity.Application;
 import com.getit.domain.apply.repository.ApplicationRepository;
@@ -36,42 +37,51 @@ public class ApplyService {
                 .build();
 
         applicationRepository.save(application);
+        applicationRepository.deleteByMemberAndIsDraftTrue(member);
     }
 
     @Transactional
-    public void saveDraft(Long memberId, ApplyRequest request) {
+    public void saveDraft(Long memberId, ApplyDraftRequest request) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        applicationRepository.findFirstByMemberAndIsDraftTrue(member)
+        String a1 = nullToEmpty(request.getAnswer1());
+        String a2 = nullToEmpty(request.getAnswer2());
+        String a3 = nullToEmpty(request.getAnswer3());
+        String a4 = nullToEmpty(request.getAnswer4());
+        String a5 = request.getAnswer5() != null ? request.getAnswer5() : "";
+
+        applicationRepository.findFirstByMemberAndIsDraftTrueOrderByIdDesc(member)
                 .ifPresentOrElse(
-                        draft -> draft.updateDraftContent(
-                                request.getAnswer1(),
-                                request.getAnswer2(),
-                                request.getAnswer3(),
-                                request.getAnswer4(),
-                                request.getAnswer5()
-                        ),
+                        draft -> {
+                            draft.updateDraftContent(a1, a2, a3, a4, a5);
+                            applicationRepository.deleteByMemberAndIsDraftTrueAndIdNot(member, draft.getId());
+                        },
                         () -> {
                             Application application = Application.builder()
                                     .member(member)
-                                    .answer1(request.getAnswer1())
-                                    .answer2(request.getAnswer2())
-                                    .answer3(request.getAnswer3())
-                                    .answer4(request.getAnswer4())
-                                    .answer5(request.getAnswer5())
+                                    .answer1(a1)
+                                    .answer2(a2)
+                                    .answer3(a3)
+                                    .answer4(a4)
+                                    .answer5(a5)
                                     .isDraft(true)
                                     .build();
                             applicationRepository.save(application);
+                            applicationRepository.deleteByMemberAndIsDraftTrueAndIdNot(member, application.getId());
                         }
                 );
+    }
+
+    private static String nullToEmpty(String s) {
+        return s != null ? s : "";
     }
 
     public Optional<ApplyDraftDataDto> getDraft(Long memberId) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
 
-        return applicationRepository.findFirstByMemberAndIsDraftTrue(member)
+        return applicationRepository.findFirstByMemberAndIsDraftTrueOrderByIdDesc(member)
                 .map(draft -> ApplyDraftDataDto.builder()
                         .answer1(draft.getAnswer1())
                         .answer2(draft.getAnswer2())
