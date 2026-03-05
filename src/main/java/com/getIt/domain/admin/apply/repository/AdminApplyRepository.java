@@ -1,6 +1,6 @@
 package com.getit.domain.admin.apply.repository;
 
-import com.getit.domain.admin.apply.entity.Application;
+import com.getit.domain.apply.entity.Application;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;

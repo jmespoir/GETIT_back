@@ -17,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 // 관리자 전용 지원서 조회 컨트롤러
 // Base URL: /api/admin/applies
@@ -31,19 +32,22 @@ public class AdminApplyController {
 
     // 모든 지원서 리스트 조회 
     // 예: /api/admin/applies?page=0&size=10
+    // 모든 지원서 리스트 조회
     @GetMapping
     public ResponseEntity<?> getAllApplies(Pageable pageable) {
         try {
+            // 1. 서비스에서 이제 List를 반환합니다.
+            List<AdminApplyListResponse> response = adminApplyService.getAllApplies(pageable);
 
-            Page<AdminApplyListResponse> response =
-                    adminApplyService.getAllApplies(pageable);
-
-            return ResponseEntity.ok(response);
+            // 2. 운영진이 요구한 JSON 포맷으로 구성 (Map 이용)
+            return ResponseEntity.ok(java.util.Map.of(
+                    "success", true,
+                    "message", "지원서 목록을 성공적으로 불러왔습니다.",
+                    "data", response
+            ));
 
         } catch (Exception e) {
-
             log.error("지원서 목록 조회 중 오류 발생", e);
-
             return buildErrorResponse(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "지원서 목록 조회 중 서버 오류가 발생했습니다."
