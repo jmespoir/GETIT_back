@@ -4,7 +4,7 @@ import com.getit.domain.admin.apply.dto.response.AdminApplyDetailResponse;
 import com.getit.domain.admin.apply.dto.response.AdminApplyListResponse;
 import com.getit.domain.admin.apply.dto.mapper.AdminApplyMapper;
 import com.getit.domain.admin.apply.repository.AdminApplyRepository;
-import com.getit.domain.admin.apply.entity.Application;
+import com.getit.domain.apply.entity.Application;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -14,7 +14,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
@@ -35,23 +34,19 @@ public class AdminApplyServiceImpl implements AdminApplyService {
 
     // 모든 지원서 조회 
     // - isDraft = false 인 데이터만 조회
-    @Override
-    public Page<AdminApplyListResponse> getAllApplies(Pageable pageable) {
+// AdminApplyServiceImpl.java
 
+    @Override
+    public List<AdminApplyListResponse> getAllApplies(Pageable pageable) {
+        // 1. DB에서 페이징 처리된 엔티티를 가져옵니다.
         Page<Application> applicationPage =
                 adminApplyRepository.findAllByIsDraftFalseOrderByIdDesc(pageable);
 
-        List<AdminApplyListResponse> responses =
-                applicationPage.getContent()
-                        .stream()
-                        .map(adminApplyMapper::toListResponse)
-                        .collect(Collectors.toList());
-
-        return new PageImpl<>(
-                responses,
-                pageable,
-                applicationPage.getTotalElements()
-        );
+        // 2. PageImpl로 감싸지 말고, List 그 자체만 변환해서 반환합니다!
+        return applicationPage.getContent()
+                .stream()
+                .map(adminApplyMapper::toListResponse)
+                .collect(Collectors.toList());
     }
 
     // 특정 지원서 상세 조회

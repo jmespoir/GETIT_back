@@ -44,6 +44,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .maxAge(Duration.ofMinutes(accessTokenExpirationMinutes))
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
-        getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+        boolean isNewMember = member.getRole().name().equals("ROLE_GUEST");
+        boolean isInfo = member.isHasInfo();
+        String targetUrl = redirectUrl + "?token=" + accessToken + "&isNewMember=" + isNewMember + "&hasInfo=" + isInfo;
+
+        getRedirectStrategy().sendRedirect(request, response, targetUrl);
     }
 }
