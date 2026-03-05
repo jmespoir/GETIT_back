@@ -2,6 +2,7 @@ package com.getit.domain.apply.controller;
 
 import com.getit.domain.auth.dto.PrincipalDetails;
 import com.getit.domain.apply.dto.ApplyDraftLoadResponse;
+import com.getit.domain.apply.dto.ApplyDraftRequest;
 import com.getit.domain.apply.dto.ApplyRequest;
 import com.getit.domain.apply.dto.ApplyResponse;
 import com.getit.domain.apply.service.ApplyService;
@@ -34,7 +35,7 @@ public class ApplyController {
     @PutMapping("/draft")
     public ResponseEntity<ApplyResponse> saveDraft(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
-            @Valid @RequestBody ApplyRequest request) {
+            @RequestBody ApplyDraftRequest request) {
         applyService.saveDraft(principalDetails.getMember().getId(), request);
         return ResponseEntity.ok(ApplyResponse.success("작성 중인 내용이 임시 저장되었습니다."));
     }
@@ -45,6 +46,7 @@ public class ApplyController {
         return applyService.getDraft(principalDetails.getMember().getId())
                 .map(data -> ResponseEntity.ok(
                         ApplyDraftLoadResponse.of("임시 저장된 데이터를 불러왔습니다.", data)))
-                .orElse(ResponseEntity.notFound().build());
+                .orElse(ResponseEntity.status(org.springframework.http.HttpStatus.NOT_FOUND)
+                        .body(ApplyDraftLoadResponse.notFound("임시 저장된 데이터가 없습니다.")));
     }
 }
