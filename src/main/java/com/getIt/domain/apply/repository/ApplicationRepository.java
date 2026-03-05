@@ -11,5 +11,9 @@ public interface ApplicationRepository extends JpaRepository<Application, Long> 
 
     List<Application> findAllByMemberOrderByIdDesc(Member member);
 
-    Optional<Application> findFirstByMemberAndIsDraftTrue(Member member);
+    Optional<Application> findFirstByMemberAndIsDraftTrueOrderByIdDesc(Member member);
+
+    void deleteByMemberAndIsDraftTrue(Member member);
+
+    void deleteByMemberAndIsDraftTrueAndIdNot(Member member, Long id);
 }
