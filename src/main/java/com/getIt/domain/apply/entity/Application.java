@@ -39,4 +39,13 @@ public class Application {
     @Column(nullable = false)
     @Builder.Default
     private boolean isDraft = false;
+
+    /** 임시저장 내용만 갱신 (기존 draft 엔티티 업데이트용) */
+    public void updateDraftContent(String answer1, String answer2, String answer3, String answer4, String answer5) {
+        this.answer1 = answer1;
+        this.answer2 = answer2;
+        this.answer3 = answer3;
+        this.answer4 = answer4;
+        this.answer5 = answer5;
+    }
 }
