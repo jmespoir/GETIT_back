@@ -46,6 +46,12 @@ public class Application {
     @Column(columnDefinition = "TEXT")
     private String answer5;
 
+    @Column(columnDefinition = "TEXT")
+    private String answer6;
+
+    @Column(columnDefinition = "TEXT")
+    private String answer7;
+
     //  임시 저장 여부
     @Column(name = "is_draft", nullable = false)
     private Boolean isDraft;
@@ -61,15 +67,19 @@ public class Application {
         answers.add(answer3);
         answers.add(answer4);
         answers.add(answer5);
+        answers.add(answer6);
+        answers.add(answer7);
 
         return answers;
     }
 
-    public void updateDraftContent(String answer1, String answer2, String answer3, String answer4, String answer5) {
+    public void updateDraftContent(String answer1, String answer2, String answer3, String answer4, String answer5, String answer6, String answer7) {
         this.answer1 = answer1;
         this.answer2 = answer2;
         this.answer3 = answer3;
         this.answer4 = answer4;
         this.answer5 = answer5;
+        this.answer6 = answer6;
+        this.answer7 = answer7;
     }
 }

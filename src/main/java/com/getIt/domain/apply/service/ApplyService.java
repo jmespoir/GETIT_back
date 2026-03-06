@@ -25,7 +25,10 @@ public class ApplyService {
     public void submit(Long memberId, ApplyRequest request) {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 사용자입니다."));
-
+        boolean alreadySubmitted = applicationRepository.existsByMemberAndIsDraftFalse(member);
+        if(alreadySubmitted){
+            throw new IllegalStateException("이미 지원서를 제출하셨습니다.");
+        }
         Application application = Application.builder()
                 .member(member)
                 .answer1(request.getAnswer1())
@@ -33,6 +36,8 @@ public class ApplyService {
                 .answer3(request.getAnswer3())
                 .answer4(request.getAnswer4())
                 .answer5(request.getAnswer5())
+                .answer6(request.getAnswer6())
+                .answer7(request.getAnswer7())
                 .isDraft(false)
                 .build();
 
@@ -50,11 +55,14 @@ public class ApplyService {
         String a3 = nullToEmpty(request.getAnswer3());
         String a4 = nullToEmpty(request.getAnswer4());
         String a5 = request.getAnswer5() != null ? request.getAnswer5() : "";
+        String a6 = nullToEmpty(request.getAnswer6());
+        String a7 = nullToEmpty(request.getAnswer7());
+
 
         applicationRepository.findFirstByMemberAndIsDraftTrueOrderByIdDesc(member)
                 .ifPresentOrElse(
                         draft -> {
-                            draft.updateDraftContent(a1, a2, a3, a4, a5);
+                            draft.updateDraftContent(a1, a2, a3, a4, a5, a6, a7);
                             applicationRepository.deleteByMemberAndIsDraftTrueAndIdNot(member, draft.getId());
                         },
                         () -> {
@@ -65,6 +73,8 @@ public class ApplyService {
                                     .answer3(a3)
                                     .answer4(a4)
                                     .answer5(a5)
+                                    .answer6(a6)
+                                    .answer7(a7)
                                     .isDraft(true)
                                     .build();
                             applicationRepository.save(application);
