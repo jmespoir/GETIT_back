@@ -42,7 +42,7 @@ public class SecurityConfig {
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/", "/login/**", "/oauth2/**", "/error").permitAll()
                         .requestMatchers("/api/test/**").permitAll()
-                        .requestMatchers("/api/applies/**").hasRole("MEMBER")
+                        .requestMatchers("/api/applies/**").permitAll()
                         .requestMatchers("/api/member/info").hasAnyRole("GUEST")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
