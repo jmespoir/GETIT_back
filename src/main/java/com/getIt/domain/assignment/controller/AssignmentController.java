@@ -1,5 +1,3 @@
-// TODO: 향후 UX 개선을 위해 '과제 전체 목록 조회'와 '과제 상세(파일/코멘트) 조회' API로 분리 필요
-
 package com.getit.domain.assignment.controller;
 
 import com.getit.domain.assignment.dto.*;

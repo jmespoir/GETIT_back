@@ -241,7 +241,8 @@ public class AssignmentService {
             }
 
             String extension = StringUtils.getFilenameExtension(fileName);
-            if (!allowedExtensions.contains(extension)) {
+            if (extension == null ||
+                    allowedExtensions.stream().noneMatch(allowed -> allowed.equalsIgnoreCase(extension))) {
                 failedFileNames.add(fileName);
                 log.warn("허용되지 않는 확장자의 파일 스킵됨({})", fileName);
                 continue;

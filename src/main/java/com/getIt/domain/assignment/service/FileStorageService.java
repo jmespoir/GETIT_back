@@ -1,6 +1,5 @@
 package com.getit.domain.assignment.service;
 
-import com.getit.domain.assignment.entity.AssignmentFile;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -36,7 +35,7 @@ public class FileStorageService {
     }
 
     public void createAssignmentDir(String dirName) {
-        Path dirPath = Path.of(storagePath, dirName);
+        Path dirPath = getValidatedDirPath(dirName);
         try {
             Files.createDirectories(dirPath);
         } catch (IOException e) {
@@ -45,7 +44,7 @@ public class FileStorageService {
     }
 
     public String storeFile(MultipartFile file, String dirName) {
-        Path baseDir = Path.of(storagePath, dirName).toAbsolutePath().normalize();
+        Path baseDir = getValidatedDirPath(dirName);
         String originalFileName = Objects.requireNonNull(file.getOriginalFilename(), "파일명이 없습니다.");
         String safeName = Path.of(originalFileName).getFileName().toString();
 
@@ -73,7 +72,7 @@ public class FileStorageService {
             return;
         }
         try {
-            Path path = Path.of(filePath);
+            Path path = getValidatedFilePath(filePath);
             boolean deleted = Files.deleteIfExists(path);
             if (deleted) {
                 log.info("물리적 파일 삭제 완료: {}", filePath);
@@ -87,7 +86,7 @@ public class FileStorageService {
 
     // 저장 중 오류 발생 시, 해당 과정에서 만들어진 dir, file 삭제 (롤백)
     public void deleteDir(String dirName) {
-        Path dirPath = Path.of(storagePath, dirName);
+        Path dirPath = getValidatedDirPath(dirName);
         try {
             FileSystemUtils.deleteRecursively(dirPath);
         } catch (IOException e) {
@@ -95,4 +94,21 @@ public class FileStorageService {
         }
     }
 
+    private Path getValidatedDirPath(String dirName) {
+        Path root = Path.of(storagePath).toAbsolutePath().normalize();
+        Path dirPath = root.resolve(dirName).normalize();
+        if (!dirPath.startsWith(root)) {
+            throw new SecurityException("허용되지 않은 디렉토리 경로 조작 시도가 감지되었습니다: " + dirName);
+        }
+        return dirPath;
+    }
+
+    private Path getValidatedFilePath(String filePath) {
+        Path root = Path.of(storagePath).toAbsolutePath().normalize();
+        Path path = Path.of(filePath).toAbsolutePath().normalize();
+        if (!path.startsWith(root)) {
+            throw new SecurityException("허용되지 않은 물리적 파일 경로 조작 시도가 감지되었습니다: " + filePath);
+        }
+        return path;
+    }
 }
