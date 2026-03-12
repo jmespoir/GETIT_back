@@ -2,10 +2,10 @@ package com.getit.domain.admin.assignment.service;
 
 import com.getit.domain.admin.assignment.dto.mapper.AdminAssignmentMapper;
 import com.getit.domain.admin.assignment.dto.response.AdminAssignmentListResponse;
-import com.getit.domain.admin.assignment.entity.Assignment;
-import com.getit.domain.admin.assignment.entity.AssignmentFile;
-import com.getit.domain.admin.assignment.repository.AssignmentFileRepository;
-import com.getit.domain.admin.assignment.repository.AssignmentRepository;
+import com.getit.domain.assignment.entity.Assignment;
+import com.getit.domain.assignment.entity.AssignmentFile;
+import com.getit.domain.assignment.repository.AssignmentFileRepository;
+import com.getit.domain.assignment.repository.AssignmentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;

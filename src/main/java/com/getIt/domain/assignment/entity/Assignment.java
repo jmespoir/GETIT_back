@@ -6,10 +6,7 @@ import com.getit.domain.member.entity.Member;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import lombok.AccessLevel;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.DynamicUpdate;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.LastModifiedDate;
@@ -22,10 +19,10 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "assignment", uniqueConstraints = {
-    @UniqueConstraint(
-        name = "uk_task_member",
-        columnNames = {"task_id", "member_id"}
-    )
+        @UniqueConstraint(
+                name = "uk_task_member",
+                columnNames = {"task_id", "member_id"}
+        )
 })
 @Getter
 @DynamicUpdate
@@ -43,20 +40,20 @@ public class Assignment {
     private Task task;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", nullable = false,  updatable = false)
+    @JoinColumn(name = "member_id", nullable = false, updatable = false)
     private Member member;
 
     @NotNull
     @Enumerated(EnumType.STRING)
-    @Column
-    private Status status;
+    @Column(nullable = false)
+    private Status status; // 과제 제출 상태 (SUBMITTED, etc.)
 
     @Column(columnDefinition = "TEXT")
-    private String comment;
+    private String comment; // 제출 시 코멘트
 
     @NotBlank
     @Column(nullable = false)
-    private String dirName;
+    private String dirName; // S3 디렉토리 경로 등
 
     @OneToMany(mappedBy = "assignment", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<AssignmentFile> assignmentFiles = new ArrayList<>();
@@ -69,9 +66,8 @@ public class Assignment {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-
     @Builder
-    private Assignment(Task task, Member member, Status status, String dirName, String comment) {
+    public Assignment(Task task, Member member, Status status, String dirName, String comment) {
         this.task = task;
         this.member = member;
         this.status = status;
@@ -79,14 +75,13 @@ public class Assignment {
         this.comment = comment;
     }
 
+    // 비즈니스 로직
     public void updateStatus(Status status) {
         this.status = Objects.requireNonNull(status, "status는 null일 수 없습니다.");
     }
 
     public void updateComment(String comment) {
-        if (comment != null) {
-            this.comment = comment;
-        }
+        this.comment = comment;
     }
 
     public void addAssignmentFile(AssignmentFile file) {
