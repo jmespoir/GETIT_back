@@ -1,4 +1,4 @@
-name: CI - Build & Test (Maven)
+name: CI - Build & Test
 
 on:
   pull_request:
@@ -15,6 +15,11 @@ jobs:
     name: Build & Test
     runs-on: ubuntu-latest
 
+    permissions:
+      checks: write        # 테스트 결과 리포트를 PR에 표시
+      contents: read       # 코드 체크아웃
+      pull-requests: write # PR 코멘트 작성
+
     strategy:
       matrix:
         java-version: [17, 21]
@@ -28,14 +33,17 @@ jobs:
         with:
           java-version: ${{ matrix.java-version }}
           distribution: 'temurin'
-          cache: 'maven'
+          cache: 'gradle'
+
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
 
       - name: Build & Test
-        run: mvn clean verify
+        run: ./gradlew clean build
 
-      # 테스트 결과를 PR에 리포트로 표시
+      # 테스트 결과를 PR 페이지에 리포트로 표시
       - name: Publish Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
         with:
-          files: target/surefire-reports/*.xml
+          files: build/test-results/test/*.xml
