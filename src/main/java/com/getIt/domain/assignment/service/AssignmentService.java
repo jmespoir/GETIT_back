@@ -7,6 +7,7 @@ import com.getit.domain.assignment.entity.Task;
 import com.getit.domain.assignment.repository.AssignmentFileRepository;
 import com.getit.domain.assignment.repository.AssignmentRepository;
 import com.getit.domain.assignment.repository.TaskRepository;
+import com.getit.domain.lecture.entity.Lecture;
 import com.getit.domain.member.entity.Member;
 import com.getit.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
@@ -200,10 +201,12 @@ public class AssignmentService {
         return assignments.stream()
                 .map(assignment -> {
                     Task task = assignment.getTask();
+                    // n+1 문제
+                    Lecture lecture = task.getLecture();
                     return AssignmentReadResultDto.builder()
                             .assignmentId(assignment.getId())
-                            .week(task.getWeek())
-                            .type(task.getType())
+                            .week(lecture.getWeek())
+                            .type(lecture.getType())
                             .status(assignment.getStatus())
                             .files(
                                     assignment.getAssignmentFiles().stream()

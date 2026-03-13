@@ -1,6 +1,6 @@
 package com.getit.domain.lecture.entity;
 
-import com.getit.domain.assignment.TaskType;
+import com.getit.domain.assignment.TrackType;
 import com.getit.domain.assignment.entity.Task;
 import jakarta.annotation.Nullable;
 import jakarta.persistence.*;
@@ -49,7 +49,7 @@ public class Lecture {
     @NotNull
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private TaskType type;
+    private TrackType type;
 
     // 영상 없는 경우도 있음
     @Nullable
@@ -61,7 +61,7 @@ public class Lecture {
     private List<LectureFile> lectureFiles = new ArrayList<>();
 
     @Builder
-    private Lecture(Task task, String title, String description, TaskType type, Integer week, String videoUrl) {
+    private Lecture(Task task, String title, String description, TrackType type, Integer week, String videoUrl) {
         this.task = task;
         this.title = title;
         this.description = description;
