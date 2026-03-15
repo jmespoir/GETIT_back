@@ -21,7 +21,7 @@ public class Lecture {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "lecture_id", updatable = false, nullable = false)
+    @Column(name = "id", updatable = false, nullable = false)
     private Long id;
 
     @NotBlank
@@ -73,5 +73,14 @@ public class Lecture {
     // 강의 자료 추가를 위한 연관관계 편의 메서드
     public void addLectureFile(LectureFile file) {
         this.lectureFiles.add(file);
+    }
+
+    // 강의 정보 업데이트 (null인 경우 기존 값 유지)
+    public void update(String title, String description, Integer week, TrackType type, String videoUrl) {
+        if (title != null) this.title = title;
+        if (description != null) this.description = description;
+        if (week != null) this.week = week;
+        if (type != null) this.type = type;
+        if (videoUrl != null) this.videoUrl = videoUrl;
     }
 }
