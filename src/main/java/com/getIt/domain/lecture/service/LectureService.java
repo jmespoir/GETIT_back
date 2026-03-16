@@ -5,11 +5,12 @@ import com.getit.domain.lecture.dto.LectureResponseDto;
 import com.getit.domain.lecture.entity.Lecture;
 import com.getit.domain.lecture.repository.LectureRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.Collectors;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -18,15 +19,18 @@ public class LectureService {
 
     private final LectureRepository lectureRepository;
 
-    public List<LectureResponseDto> getLectures() {
-        return lectureRepository.findAll().stream()
-                .map(LectureResponseDto::from)
-                .collect(Collectors.toList());
+    public Page<LectureResponseDto> getLectures(Pageable pageable) {
+
+        return lectureRepository.findAll(pageable)
+                .map(LectureResponseDto::from);
     }
 
     public LectureDetailResponseDto getLectureDetail(Long id) {
+
         Lecture lecture = lectureRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lecture not found"));
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Lecture not found"));
+
         return LectureDetailResponseDto.from(lecture);
     }
 }

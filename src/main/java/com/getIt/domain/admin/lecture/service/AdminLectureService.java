@@ -8,8 +8,10 @@ import com.getit.domain.lecture.repository.LectureRepository;
 import com.getit.domain.member.entity.Member;
 import com.getit.domain.member.repository.MemberRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 @Service
 @RequiredArgsConstructor
@@ -20,49 +22,64 @@ public class AdminLectureService {
 
     @Transactional
     public void createLecture(LectureCreateRequestDto request) {
+
+        String videoUrl = normalizeVideoUrl(request.getVideoUrl());
+
         Lecture lecture = Lecture.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
                 .week(request.getWeek())
                 .type(request.getType())
-                .videoUrl(request.getVideoUrl())
+                .videoUrl(videoUrl)
                 .build();
-        
+
         lectureRepository.save(lecture);
     }
 
     @Transactional
     public void updateLecture(Long id, LectureUpdateRequestDto request) {
+
         Lecture lecture = lectureRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lecture not found"));
-        
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Lecture not found"));
+
         lecture.update(
                 request.getTitle(),
                 request.getDescription(),
                 request.getWeek(),
                 request.getType(),
-                request.getVideoUrl()
+                normalizeVideoUrl(request.getVideoUrl())
         );
-        
-        lectureRepository.save(lecture);
     }
 
     @Transactional
     public void deleteLecture(Long id) {
+
         Lecture lecture = lectureRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Lecture not found"));
-        
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Lecture not found"));
+
         lectureRepository.delete(lecture);
     }
 
     @Transactional(readOnly = true)
     public AdminLectureMemberResponseDto getLectureWithMemberInfo(Long lectureId, Long memberId) {
+
         Lecture lecture = lectureRepository.findById(lectureId)
-                .orElseThrow(() -> new RuntimeException("Lecture not found"));
-        
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Lecture not found"));
+
         Member member = memberRepository.findById(memberId)
-                .orElseThrow(() -> new RuntimeException("Member not found"));
-                
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND, "Member not found"));
+
         return AdminLectureMemberResponseDto.of(lecture, member);
+    }
+
+    private String normalizeVideoUrl(String videoUrl) {
+        if (videoUrl == null || videoUrl.isBlank()) {
+            return null;
+        }
+        return videoUrl;
     }
 }
