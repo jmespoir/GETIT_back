@@ -1,5 +1,6 @@
 package com.getit.domain.admin.assignment.dto.mapper;
 
+import com.getit.domain.admin.assignment.dto.response.AdminAssignmentDetailResponse;
 import com.getit.domain.admin.assignment.dto.response.AdminAssignmentListResponse;
 import com.getit.domain.admin.assignment.dto.response.AssignmentFileInfoDto;
 import com.getit.domain.assignment.entity.Assignment;
@@ -43,6 +44,27 @@ public final class AdminAssignmentMapper {
 
                 .files(
                         files.stream()
+                                .map(AdminAssignmentMapper::toFileInfo)
+                                .collect(Collectors.toList())
+                )
+                .build();
+    }
+
+    public static AdminAssignmentDetailResponse toDetailResponse(Assignment assignment) {
+
+        Task task = assignment.getTask();
+
+        return AdminAssignmentDetailResponse.builder()
+                .assignmentId(assignment.getId())
+                .status(assignment.getStatus())
+                .comment(assignment.getComment())
+                .submittedAt(assignment.getSubmittedAt())
+                .updatedAt(assignment.getUpdatedAt())
+                .memberId(assignment.getMember().getId())
+                .memberName(assignment.getMember().getMemberInfo().getName())
+                .taskTitle(task.getTitle())
+                .files(
+                        assignment.getAssignmentFiles().stream()
                                 .map(AdminAssignmentMapper::toFileInfo)
                                 .collect(Collectors.toList())
                 )

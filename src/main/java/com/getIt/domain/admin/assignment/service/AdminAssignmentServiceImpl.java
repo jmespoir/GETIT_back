@@ -1,6 +1,7 @@
 package com.getit.domain.admin.assignment.service;
 
 import com.getit.domain.admin.assignment.dto.mapper.AdminAssignmentMapper;
+import com.getit.domain.admin.assignment.dto.response.AdminAssignmentDetailResponse;
 import com.getit.domain.admin.assignment.dto.response.AdminAssignmentListResponse;
 import com.getit.domain.assignment.entity.Assignment;
 import com.getit.domain.assignment.entity.AssignmentFile;
@@ -58,5 +59,15 @@ public class AdminAssignmentServiceImpl implements AdminAssignmentService {
                 AdminAssignmentMapper.toResponseList(assignments, fileMap);
 
         return new PageImpl<>(dtoList, pageable, assignmentPage.getTotalElements());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public AdminAssignmentDetailResponse getAssignmentDetail(Long lectureId, Long memberId) {
+
+        Assignment assignment = assignmentRepository.findByTaskLectureIdAndMemberId(lectureId, memberId)
+                .orElseThrow(() -> new IllegalArgumentException("해당 과제를 찾을 수 없습니다."));
+
+        return AdminAssignmentMapper.toDetailResponse(assignment);
     }
 }

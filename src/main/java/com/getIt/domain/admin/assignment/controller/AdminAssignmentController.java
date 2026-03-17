@@ -1,5 +1,6 @@
 package com.getit.domain.admin.assignment.controller;
 
+import com.getit.domain.admin.assignment.dto.response.AdminAssignmentDetailResponse;
 import com.getit.domain.admin.assignment.dto.response.AdminAssignmentListResponse;
 import com.getit.domain.admin.assignment.service.AdminAssignmentService;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
+@PreAuthorize("hasRole('ADMIN')")
 @RequestMapping("/api/admin/assignments")
 @RequiredArgsConstructor
 public class AdminAssignmentController {
@@ -18,7 +20,6 @@ public class AdminAssignmentController {
 
     // 부원들이 제출한 전체 과제 조회
     // GET /api/admin/assignments/all?page=0&size=10
-    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/all")
     public ResponseEntity<Page<AdminAssignmentListResponse>> getAllAssignments(
             Pageable pageable
@@ -28,5 +29,14 @@ public class AdminAssignmentController {
                 adminAssignmentService.getAllAssignments(pageable);
 
         return ResponseEntity.ok(assignments);
+    }
+
+    @GetMapping("/{lectureId}/{memberId}")
+    public ResponseEntity<AdminAssignmentDetailResponse> getAssignmentDetail(
+            @PathVariable Long lectureId,
+            @PathVariable Long memberId
+    ) {
+        AdminAssignmentDetailResponse result = adminAssignmentService.getAssignmentDetail(lectureId, memberId);
+        return ResponseEntity.ok(result);
     }
 }
