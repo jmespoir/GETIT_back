@@ -54,7 +54,7 @@ public final class AdminAssignmentMapper {
         return AdminAssignmentListResponse.FileInfo.builder()
                 .fileId(file.getId())
                 .fileName(file.getFileName())
-                .filePath(file.getFilePath())
+                // .filePath(file.getFilePath())
                 .build();
     }
 
