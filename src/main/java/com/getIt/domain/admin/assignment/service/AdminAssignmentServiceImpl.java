@@ -32,7 +32,7 @@ public class AdminAssignmentServiceImpl implements AdminAssignmentService {
     private final AssignmentRepository assignmentRepository;
     private final AssignmentFileRepository assignmentFileRepository;
 
-    @Value("${file.upload.path}")
+    @Value("${file.upload.dir}")
     private String storagePath;
 
     // 부원들이 제출한 전체 과제 조회 
