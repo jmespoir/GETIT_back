@@ -9,6 +9,7 @@ import com.getit.domain.assignment.entity.AssignmentFile;
 import com.getit.domain.assignment.repository.AssignmentFileRepository;
 import com.getit.domain.assignment.repository.AssignmentRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.data.domain.Page;
@@ -30,6 +31,9 @@ public class AdminAssignmentServiceImpl implements AdminAssignmentService {
 
     private final AssignmentRepository assignmentRepository;
     private final AssignmentFileRepository assignmentFileRepository;
+
+    @Value("${file.upload.path}")
+    private String storagePath;
 
     // 부원들이 제출한 전체 과제 조회 
     @Override
@@ -85,7 +89,7 @@ public class AdminAssignmentServiceImpl implements AdminAssignmentService {
                 .orElseThrow(() -> new IllegalArgumentException("해당 파일을 찾을 수 없습니다."));
 
         try {
-            Path filePath = Paths.get(assignmentFile.getFilePath()).normalize();
+            Path filePath = getValidatedFilePath(assignmentFile.getFilePath());
             Resource resource = new UrlResource(filePath.toUri());
 
             if (!resource.exists() || !resource.isReadable()) {
@@ -97,5 +101,15 @@ public class AdminAssignmentServiceImpl implements AdminAssignmentService {
         } catch (MalformedURLException e) {
             throw new IllegalStateException("파일 경로가 잘못되었습니다.");
         }
+    }
+
+    private Path getValidatedFilePath(String filePath) {
+        Path root = Path.of(storagePath).toAbsolutePath().normalize();
+        Path path = Path.of(filePath).toAbsolutePath().normalize();
+
+        if (!path.startsWith(root)) {
+            throw new SecurityException("허용되지 않은 파일 경로 접근 시도: " + filePath);
+        }
+        return path;
     }
 }
