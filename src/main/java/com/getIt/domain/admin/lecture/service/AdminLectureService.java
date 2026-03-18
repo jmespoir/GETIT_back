@@ -79,7 +79,7 @@ public class AdminLectureService {
         return AdminLectureMemberResponseDto.of(lecture, member);
     }
 
-    public void normalizeUrl(String newUrl) {
+    public String normalizeUrl(String newUrl) {
     if (newUrl == null) {
         return; // 필드가 전달되지 않았으므로 무시
     }
