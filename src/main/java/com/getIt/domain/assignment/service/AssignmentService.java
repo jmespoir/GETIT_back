@@ -58,11 +58,19 @@ public class AssignmentService {
         Member member = memberRepository.findById(memberId)
                 .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
 
-        // lectureId를 받아오는 API로 변경 시 수정
-        Lecture lecture = lectureRepository.findByWeekAndType(dto.getWeek(), dto.getType())
-                .orElseThrow(() -> new IllegalArgumentException("해당 lecture을 찾을 수 없습니다."));
+        Lecture lecture;
+        if (dto.getLectureId() != null) {
+            lecture = lectureRepository.findById(dto.getLectureId())
+                    .orElseThrow(() -> new IllegalArgumentException("해당 강의를 찾을 수 없습니다."));
+        } else {
+            if (dto.getWeek() == null || dto.getType() == null) {
+                throw new IllegalArgumentException("강의 정보(lectureId 또는 week·type)가 필요합니다.");
+            }
+            lecture = lectureRepository.findByWeekAndType(dto.getWeek(), dto.getType())
+                    .orElseThrow(() -> new IllegalArgumentException("해당 강의를 찾을 수 없습니다."));
+        }
         Task task = taskRepository.findByLecture(lecture)
-                .orElseThrow(() -> new IllegalArgumentException("해당 task를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("해당 강의에 연결된 과제가 없습니다. 관리자에게 문의하세요."));
 
         String dirName = UUID.randomUUID().toString();
 

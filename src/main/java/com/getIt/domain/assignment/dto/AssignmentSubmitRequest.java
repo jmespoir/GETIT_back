@@ -11,11 +11,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AssignmentSubmitRequest {
 
-    @NotNull
+    /** 있으면 이 ID로 강의 조회 후 해당 Task에 제출 (week/type 무시). 없으면 week+type으로 강의 조회 */
+    private Long lectureId;
+
     @Positive
     private Integer week;
 
-    @NotNull
     private TrackType type;
 
     private String comment;
