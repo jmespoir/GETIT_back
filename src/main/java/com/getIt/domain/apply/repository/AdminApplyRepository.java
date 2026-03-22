@@ -1,4 +1,4 @@
-package com.getit.domain.admin.apply.repository;
+package com.getit.domain.apply.repository;
 
 import com.getit.domain.apply.entity.Application;
 import org.springframework.data.domain.Page;

@@ -1,4 +1,4 @@
-package com.getit.domain.admin.apply.dto.response;
+package com.getit.domain.apply.dto;
 
 import lombok.Builder;
 import lombok.Getter;

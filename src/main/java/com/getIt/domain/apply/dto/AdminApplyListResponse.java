@@ -1,9 +1,7 @@
-package com.getit.domain.admin.apply.dto.response;
+package com.getit.domain.apply.dto;
 
 import lombok.Builder;
 import lombok.Getter;
-
-import java.time.LocalDateTime;
 
 //  관리자 지원서 목록 조회용 DTO (요약 정보)
 //  - 리스트 화면에서 사용

@@ -1,14 +1,13 @@
-package com.getit.domain.admin.apply.controller;
+package com.getit.domain.apply.controller;
 
-import com.getit.domain.admin.apply.dto.response.AdminApplyDetailResponse;
-import com.getit.domain.admin.apply.dto.response.AdminApplyListResponse;
-import com.getit.domain.admin.apply.service.AdminApplyService;
+import com.getit.domain.apply.dto.AdminApplyDetailResponse;
+import com.getit.domain.apply.dto.AdminApplyListResponse;
+import com.getit.domain.apply.service.AdminApplyService;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import org.springframework.http.HttpStatus;
