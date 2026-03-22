@@ -1,9 +1,8 @@
-package com.getit.domain.admin.apply.service;
+package com.getit.domain.apply.service;
 
-import com.getit.domain.admin.apply.dto.response.AdminApplyDetailResponse;
-import com.getit.domain.admin.apply.dto.response.AdminApplyListResponse;
+import com.getit.domain.apply.dto.AdminApplyDetailResponse;
+import com.getit.domain.apply.dto.AdminApplyListResponse;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
