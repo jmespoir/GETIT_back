@@ -1,4 +1,4 @@
-package com.getit.domain.admin.lecture.dto;
+package com.getit.domain.lecture.dto;
 
 import com.getit.domain.assignment.entity.Task;
 import lombok.AllArgsConstructor;

@@ -1,4 +1,4 @@
-package com.getit.domain.admin.lecture.dto;
+package com.getit.domain.lecture.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
