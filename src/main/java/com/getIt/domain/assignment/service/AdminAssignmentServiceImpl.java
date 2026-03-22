@@ -1,9 +1,9 @@
-package com.getit.domain.admin.assignment.service;
+package com.getit.domain.assignment.service;
 
-import com.getit.domain.admin.assignment.dto.internal.FileDownloadDto;
-import com.getit.domain.admin.assignment.dto.mapper.AdminAssignmentMapper;
-import com.getit.domain.admin.assignment.dto.response.AdminAssignmentDetailResponse;
-import com.getit.domain.admin.assignment.dto.response.AdminAssignmentListResponse;
+import com.getit.domain.assignment.dto.FileDownloadDto;
+import com.getit.domain.assignment.dto.AdminAssignmentMapper;
+import com.getit.domain.assignment.dto.AdminAssignmentDetailResponse;
+import com.getit.domain.assignment.dto.AdminAssignmentListResponse;
 import com.getit.domain.assignment.entity.Assignment;
 import com.getit.domain.assignment.entity.AssignmentFile;
 import com.getit.domain.assignment.repository.AssignmentFileRepository;
@@ -20,7 +20,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.net.MalformedURLException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 

@@ -1,8 +1,8 @@
-package com.getit.domain.admin.assignment.service;
+package com.getit.domain.assignment.service;
 
-import com.getit.domain.admin.assignment.dto.internal.FileDownloadDto;
-import com.getit.domain.admin.assignment.dto.response.AdminAssignmentDetailResponse;
-import com.getit.domain.admin.assignment.dto.response.AdminAssignmentListResponse;
+import com.getit.domain.assignment.dto.FileDownloadDto;
+import com.getit.domain.assignment.dto.AdminAssignmentDetailResponse;
+import com.getit.domain.assignment.dto.AdminAssignmentListResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
