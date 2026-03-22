@@ -253,4 +253,38 @@ public class AssignmentService {
                 .failedFiles(failedFileNames)
                 .build();
     }
+    @Transactional(readOnly = true)
+    public List<AssignmentReadResultDto> getAssignments(Long memberId) {
+        // 사용자 존재 여부 확인
+        findMember(memberId);
+
+        // 멤버 ID로 과제, 과제에 속한 Task, 파일들을 한꺼번에 조회
+        List<Assignment> assignments = assignmentRepository.findAllByMemberIdWithTaskAndFiles(memberId);
+
+        return assignments.stream()
+                .map(assignment -> {
+                    Task task = assignment.getTask();
+                    Lecture lecture = task.getLecture();
+
+                    return AssignmentReadResultDto.builder()
+                            .assignmentId(assignment.getId())
+                            .week(lecture.getWeek())
+                            .type(lecture.getType())
+                            .status(assignment.getStatus())
+                            .files(
+                                    assignment.getAssignmentFiles().stream()
+                                            .map(file -> AssignmentReadResultDto.AssignmentFileInfo.builder()
+                                                    .fileId(file.getId())
+                                                    .fileName(file.getFileName())
+                                                    .build()
+                                            ).toList()
+                            )
+                            .createdAt(assignment.getSubmittedAt() != null ? assignment.getSubmittedAt().toString() : null)
+                            .updatedAt(assignment.getUpdatedAt() != null ? assignment.getUpdatedAt().toString() : null)
+                            .deadline(task.getDeadline() != null ? task.getDeadline().toString() : null)
+                            .githubUrl(assignment.getGithubUrl())
+                            .build();
+                })
+                .toList();
+    }
 }
