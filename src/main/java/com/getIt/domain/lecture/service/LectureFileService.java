@@ -77,8 +77,9 @@ public class LectureFileService {
     public void deleteFile(Long lectureId, Long fileId) {
         LectureFile lf = lectureFileRepository.findByIdAndLecture_Id(fileId, lectureId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "파일을 찾을 수 없습니다."));
-        lectureFileStorageService.deleteStoredFile(lf.getFilePath());
+        String filePath = lf.getFilePath();
         lectureFileRepository.delete(lf);
+        lectureFileStorageService.deleteStoredFile(filePath);
     }
 
     @Transactional(readOnly = true)
