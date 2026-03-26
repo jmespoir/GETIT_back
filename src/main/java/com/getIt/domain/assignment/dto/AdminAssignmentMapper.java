@@ -65,7 +65,9 @@ public final class AdminAssignmentMapper {
                 .submittedAt(assignment.getSubmittedAt())
                 .updatedAt(assignment.getUpdatedAt())
                 .memberId(assignment.getMember().getId())
-                .memberName(assignment.getMember().getMemberInfo().getName())
+                .memberName(
+                        assignment.getMember().getMemberInfo()!=null ? assignment.getMember().getMemberInfo().getName() : null
+                        )
                 .taskTitle(task.getTitle())
                 .files(
                         assignment.getAssignmentFiles().stream()
