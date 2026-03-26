@@ -28,6 +28,11 @@ public final class AdminAssignmentMapper {
         return AdminAssignmentListResponse.builder()
                 .assignmentId(assignment.getId())
                 .memberId(assignment.getMember().getId())
+                .memberName(
+                        assignment.getMember().getMemberInfo() != null
+                                ? assignment.getMember().getMemberInfo().getName()
+                                : null
+                )
                 .status(assignment.getStatus())
                 .submittedAt(assignment.getSubmittedAt())
                 .updatedAt(assignment.getUpdatedAt())
@@ -60,7 +65,9 @@ public final class AdminAssignmentMapper {
                 .submittedAt(assignment.getSubmittedAt())
                 .updatedAt(assignment.getUpdatedAt())
                 .memberId(assignment.getMember().getId())
-                .memberName(assignment.getMember().getMemberInfo().getName())
+                .memberName(
+                        assignment.getMember().getMemberInfo()!=null ? assignment.getMember().getMemberInfo().getName() : null
+                        )
                 .taskTitle(task.getTitle())
                 .files(
                         assignment.getAssignmentFiles().stream()

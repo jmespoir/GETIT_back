@@ -6,6 +6,8 @@ import com.getit.domain.lecture.dto.LectureUpdateRequestDto;
 import com.getit.domain.assignment.entity.Task;
 import com.getit.domain.assignment.repository.TaskRepository;
 import com.getit.domain.lecture.entity.Lecture;
+import com.getit.domain.lecture.entity.LectureFile;
+import com.getit.domain.lecture.repository.LectureFileRepository;
 import com.getit.domain.lecture.repository.LectureRepository;
 import com.getit.domain.member.entity.Member;
 import com.getit.domain.member.repository.MemberRepository;
@@ -15,6 +17,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import lombok.extern.slf4j.Slf4j;
+import java.util.List;
+
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminLectureService {
@@ -24,6 +30,8 @@ public class AdminLectureService {
     private final LectureRepository lectureRepository;
     private final MemberRepository memberRepository;
     private final TaskRepository taskRepository;
+    private final LectureFileRepository lectureFileRepository;
+    private final LectureFileStorageService lectureFileStorageService;
 
     public Lecture findById(Long id){
         return lectureRepository.findById(id)
@@ -75,7 +83,17 @@ public class AdminLectureService {
     @Transactional
     public void deleteLecture(Long id) {
         Lecture lecture = findById(id);
+        List<String> filePaths = lectureFileRepository.findAllByLecture_IdOrderByIdAsc(id).stream()
+            .map(LectureFile::getFilePath)
+            .toList();  
         lectureRepository.delete(lecture);
+        for(String path : filePaths) {
+            try{
+                lectureFileStorageService.deleteStoredFile(path);
+            } catch (Exception e) {
+                log.error("강의 자료 파일 삭제 실패: {}", path, e);
+            }
+        }
     }
 
     @Transactional(readOnly = true)

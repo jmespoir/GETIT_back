@@ -2,7 +2,9 @@ package com.getit.domain.assignment.service;
 
 import com.getit.domain.assignment.dto.*;
 import com.getit.domain.assignment.entity.Assignment;
+
 import com.getit.domain.assignment.entity.AssignmentFile;
+import com.getit.domain.assignment.repository.AssignmentFeedbackRepository;
 import com.getit.domain.assignment.entity.Task;
 import com.getit.domain.assignment.repository.AssignmentFileRepository;
 import com.getit.domain.assignment.repository.AssignmentRepository;
@@ -11,6 +13,7 @@ import com.getit.domain.lecture.entity.Lecture;
 import com.getit.domain.lecture.repository.LectureRepository;
 import com.getit.domain.member.entity.Member;
 import com.getit.domain.member.repository.MemberRepository;
+import com.getit.domain.assignment.entity.AssignmentFeedback;
 import com.getit.global.exception.ErrorCode;
 import com.getit.global.exception.GlobalExceptionManager.BusinessException;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -43,6 +48,7 @@ public class AssignmentService {
 
     private final AssignmentRepository assignmentRepository;
     private final AssignmentFileRepository assignmentFileRepository;
+    private final AssignmentFeedbackRepository assignmentFeedbackRepository;
     private final TaskRepository taskRepository;
     private final MemberRepository memberRepository;
     private final LectureRepository lectureRepository;
@@ -261,13 +267,32 @@ public class AssignmentService {
         // 멤버 ID로 과제, 과제에 속한 Task, 파일들을 한꺼번에 조회
         List<Assignment> assignments = assignmentRepository.findAllByMemberIdWithTaskAndFiles(memberId);
 
+        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
+
+        Map<Long, List<AssignmentFeedback>> feedbackMap = assignmentFeedbackRepository
+            .findAllByAssignmentIdOrderByCreatedAtAsc(assignmentIds)
+            .stream()
+            .collect(Collectors.groupingBy(AssignmentFeedback->AssignmentFeedback.getAssignment().getId()));
+
         return assignments.stream()
                 .map(assignment -> {
                     Task task = assignment.getTask();
                     Lecture lecture = task.getLecture();
 
+                    List<AssignmentReadResultDto.AssignmentFeedbackInfo> feedbacks =
+                            feedbackMap.getOrDefault(assignment.getId(), List.of()).stream()
+                            .map(feedback -> AssignmentReadResultDto.AssignmentFeedbackInfo.builder()
+                                    .feedbackId(feedback.getId())
+                                    .content(feedback.getContent())
+                                    .createdAt(feedback.getCreatedAt() != null ? feedback.getCreatedAt().toString() : null)
+                                    .updatedAt(feedback.getUpdatedAt() != null ? feedback.getUpdatedAt().toString() : null)
+                                    .build()
+                            )
+                            .toList();
+
                     return AssignmentReadResultDto.builder()
                             .assignmentId(assignment.getId())
+                            .lectureId(lecture.getId())
                             .week(lecture.getWeek())
                             .type(lecture.getType())
                             .status(assignment.getStatus())
@@ -283,6 +308,7 @@ public class AssignmentService {
                             .updatedAt(assignment.getUpdatedAt() != null ? assignment.getUpdatedAt().toString() : null)
                             .deadline(task.getDeadline() != null ? task.getDeadline().toString() : null)
                             .githubUrl(assignment.getGithubUrl())
+                            .feedbacks(feedbacks)
                             .build();
                 })
                 .toList();
