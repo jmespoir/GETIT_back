@@ -5,7 +5,9 @@ import com.getit.domain.assignment.service.AssignmentService;
 import com.getit.domain.auth.dto.PrincipalDetails;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.Resource;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +16,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 @RestController
@@ -27,7 +30,7 @@ public class AssignmentController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<AssignmentTemporaryResponse<AssignmentResultDto>> createAssignment(
             @AuthenticationPrincipal PrincipalDetails principalDetails,
-            @RequestPart(value = "files") List<MultipartFile> files,
+            @RequestPart(value = "files", required = false) List<MultipartFile> files,
             @RequestPart(value = "request") @Valid AssignmentSubmitRequest request
             ) {
         AssignmentResultDto result = assignmentService
@@ -52,6 +55,7 @@ public class AssignmentController {
         boolean hasFiles = files != null && !files.isEmpty() && !files.get(0).isEmpty();
         boolean hasRequest = request != null &&
                 (request.getComment() != null ||
+                        request.getGithubUrl() != null ||
                         (request.getDeletedFiles() != null && !request.getDeletedFiles().isEmpty()));
         if (!hasFiles && !hasRequest) {
             throw new IllegalArgumentException("수정할 내용이 없습니다.");
@@ -80,6 +84,22 @@ public class AssignmentController {
                         "과제 제출 내역을 조회했습니다.",
                         result
                 ));
+    }
+
+    @GetMapping("/files/{fileId}/download")
+    public ResponseEntity<Resource> downloadMyAssignmentFile(
+            @AuthenticationPrincipal PrincipalDetails principalDetails,
+            @PathVariable Long fileId
+    ) {
+        FileDownloadDto downloadDto = assignmentService.downloadFileForMember(principalDetails.getMember().getId(), fileId);
+        ContentDisposition contentDisposition = ContentDisposition.attachment()
+                .filename(downloadDto.originFileName(), StandardCharsets.UTF_8)
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_OCTET_STREAM_VALUE)
+                .body(downloadDto.resource());
     }
 
 }

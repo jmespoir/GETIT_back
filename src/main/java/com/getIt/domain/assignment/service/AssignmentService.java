@@ -20,7 +20,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.security.access.AccessDeniedException;
+import org.springframework.core.io.Resource;
+import org.springframework.core.io.UrlResource;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -33,6 +34,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.Map;
+import java.net.MalformedURLException;
+import java.nio.file.Path;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -46,6 +49,9 @@ public class AssignmentService {
     @Value("${file.upload.max-count}")
     private long maxFileCount;
 
+    @Value("${file.upload.dir}")
+    private String storagePath;
+
     private final AssignmentRepository assignmentRepository;
     private final AssignmentFileRepository assignmentFileRepository;
     private final AssignmentFeedbackRepository assignmentFeedbackRepository;
@@ -56,8 +62,8 @@ public class AssignmentService {
 
     @Transactional
     public AssignmentResultDto createAssignment(Long memberId, List<MultipartFile> files, AssignmentSubmitRequest dto) {
-        // 1. 파일 기본 검증
-        validateFiles(files);
+        // 1. 제출 기본 검증 (파일 또는 텍스트 입력 중 최소 1개)
+        validateCreatePayload(files, dto);
 
         // 2. 관련 엔티티 조회 (BusinessException 적용)
         Member member = findMember(memberId);
@@ -84,12 +90,20 @@ public class AssignmentService {
             throw new BusinessException(ErrorCode.ALREADY_SUBMITTED_ASSIGNMENT);
         }
 
-        // 4. 물리 파일 저장 및 예외 처리
-        fileStorageService.createAssignmentDir(dirName);
+        // 4. 물리 파일 저장 및 예외 처리 (파일이 있을 때만 저장)
         try {
+            if (!isNotEmptyFiles(files)) {
+                return AssignmentResultDto.builder()
+                        .successFiles(new ArrayList<>())
+                        .failedFiles(new ArrayList<>())
+                        .build();
+            }
+            fileStorageService.createAssignmentDir(dirName);
             return processAndSaveFiles(files, assignment, dirName);
         } catch (Exception e) {
-            fileStorageService.deleteDir(dirName);
+            if (isNotEmptyFiles(files)) {
+                fileStorageService.deleteDir(dirName);
+            }
             // 래핑된 BusinessException이라면 그대로 던지고, 아니라면 새로 생성
             if (e instanceof BusinessException) throw e;
             throw new BusinessException(ErrorCode.FILE_UPLOAD_ERROR, "파일 저장 중 오류가 발생했습니다.");
@@ -114,6 +128,7 @@ public class AssignmentService {
 
         try {
             if (hasRealNewFiles) {
+                fileStorageService.createAssignmentDir(assignment.getDirName());
                 result = processAndSaveFiles(newFiles, assignment, assignment.getDirName());
             }
 
@@ -123,8 +138,12 @@ public class AssignmentService {
 
             // 엔티티 업데이트
             assignment.updateStatus(assignment.getTask().determineSubmitStatus(LocalDateTime.now()));
-            assignment.updateComment(dto != null ? dto.getComment() : null);
-            if (dto != null) assignment.updateGithubUrl(dto.getGithubUrl());
+            if (dto != null && dto.getComment() != null) {
+                assignment.updateComment(dto.getComment());
+            }
+            if (dto != null && dto.getGithubUrl() != null) {
+                assignment.updateGithubUrl(dto.getGithubUrl());
+            }
 
             // 커밋 후 물리 파일 삭제 예약
             registerFileDeletionSync(deletedFilePaths);
@@ -150,11 +169,14 @@ public class AssignmentService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.MEMBER_NOT_FOUND));
     }
 
-    private void validateFiles(List<MultipartFile> files) {
-        if (!isNotEmptyFiles(files)) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "최소 1개 이상의 파일을 업로드해야 합니다.");
+    private void validateCreatePayload(List<MultipartFile> files, AssignmentSubmitRequest dto) {
+        boolean hasFiles = isNotEmptyFiles(files);
+        boolean hasGithub = dto != null && StringUtils.hasText(dto.getGithubUrl());
+        boolean hasComment = dto != null && StringUtils.hasText(dto.getComment());
+        if (!hasFiles && !hasGithub && !hasComment) {
+            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "파일 또는 코멘트 또는 GitHub 링크 중 하나는 입력해야 합니다.");
         }
-        if (files.size() > maxFileCount) {
+        if (hasFiles && files.size() > maxFileCount) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "파일은 최대 " + maxFileCount + "개까지 첨부 가능합니다.");
         }
     }
@@ -221,9 +243,6 @@ public class AssignmentService {
 
         if (finalFileCount > maxFileCount) {
             throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "파일은 최대 " + maxFileCount + "개까지만 유지할 수 있습니다.");
-        }
-        if (finalFileCount < 1) {
-            throw new BusinessException(ErrorCode.INVALID_INPUT_VALUE, "최소 1개 이상의 파일이 유지되어야 합니다.");
         }
     }
     private AssignmentResultDto processAndSaveFiles(List<MultipartFile> files, Assignment assignment, String dirName) {
@@ -312,5 +331,33 @@ public class AssignmentService {
                             .build();
                 })
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public FileDownloadDto downloadFileForMember(Long memberId, Long fileId) {
+        findMember(memberId);
+        AssignmentFile assignmentFile = assignmentFileRepository
+                .findByIdAndAssignment_Member_Id(fileId, memberId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_ASSIGNMENT_OWNER, "본인 제출 파일만 다운로드할 수 있습니다."));
+
+        try {
+            Path filePath = getValidatedFilePath(assignmentFile.getFilePath());
+            Resource resource = new UrlResource(filePath.toUri());
+            if (!resource.exists() || !resource.isReadable()) {
+                throw new BusinessException(ErrorCode.FILE_DOWNLOAD_FAILED, "파일을 읽을 수 없거나 존재하지 않습니다.");
+            }
+            return new FileDownloadDto(resource, assignmentFile.getFileName());
+        } catch (MalformedURLException e) {
+            throw new BusinessException(ErrorCode.FILE_DOWNLOAD_FAILED, "파일 경로가 잘못되었습니다.");
+        }
+    }
+
+    private Path getValidatedFilePath(String filePath) {
+        Path root = Path.of(storagePath).toAbsolutePath().normalize();
+        Path path = Path.of(filePath).toAbsolutePath().normalize();
+        if (!path.startsWith(root)) {
+            throw new BusinessException(ErrorCode.ACCESS_DENIED, "허용되지 않은 파일 경로 접근입니다.");
+        }
+        return path;
     }
 }

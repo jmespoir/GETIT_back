@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AssignmentFileRepository extends JpaRepository<AssignmentFile, Long> {
@@ -15,4 +16,6 @@ public interface AssignmentFileRepository extends JpaRepository<AssignmentFile, 
 
     //  여러 Assignment의 파일을 한번에 조회
     List<AssignmentFile> findByAssignmentIdIn(List<Long> assignmentIds);
+
+    Optional<AssignmentFile> findByIdAndAssignment_Member_Id(Long fileId, Long memberId);
 }
