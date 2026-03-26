@@ -69,6 +69,10 @@ public class LectureFileService {
                     log.error("강의 자료 파일 삭제 실패: {}", path, ex);
                 }
             });
+            if(e instanceof IllegalArgumentException){
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage());
+            }
+            throw e;
         }
         if(out.isEmpty()){
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "유효한 파일이 없습니다.");
