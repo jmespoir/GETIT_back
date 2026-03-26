@@ -263,22 +263,22 @@ public class AssignmentService {
         // 멤버 ID로 과제, 과제에 속한 Task, 파일들을 한꺼번에 조회
         List<Assignment> assignments = assignmentRepository.findAllByMemberIdWithTaskAndFiles(memberId);
 
+        List<Long> assignmentIds = assignments.stream().map(Assignment::getId).toList();
+
+        Map<Long, List<AssignmentFeedback>> feedbackMap = assignmentFeedbackRepository
+            .findAllByAssignmentIdOrderByCreatedAtAsc(assignmentIds).stream()
+            .stream()
+            .collect(Collectors.groupingBy(AssignmentFeedback->AssignmentFeedback.getAssignment().getId()));
+
         return assignments.stream()
                 .map(assignment -> {
                     Task task = assignment.getTask();
                     Lecture lecture = task.getLecture();
 
                     List<AssignmentReadResultDto.AssignmentFeedbackInfo> feedbacks =
-                            assignmentFeedbackRepository.findAllByAssignmentIdOrderByCreatedAtAsc(assignment.getId())
-                                    .stream()
-                                    .map(f -> AssignmentReadResultDto.AssignmentFeedbackInfo.builder()
-                                            .feedbackId(f.getId())
-                                            .content(f.getContent())
-                                            .createdAt(f.getCreatedAt() != null ? f.getCreatedAt().toString() : null)
-                                            .updatedAt(f.getUpdatedAt() != null ? f.getUpdatedAt().toString() : null)
-                                            .build()
-                                    )
-                                    .toList();
+                            feadbackMap.getOrDefault(assignment.getId(), List.of()).stream()
+                            .map(AssignmentFeedbackResponseDto::from)
+                            .toList();
 
                     return AssignmentReadResultDto.builder()
                             .assignmentId(assignment.getId())

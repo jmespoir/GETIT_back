@@ -7,6 +7,6 @@ import java.util.List;
 
 public interface AssignmentFeedbackRepository extends JpaRepository<AssignmentFeedback, Long> {
 
-    List<AssignmentFeedback> findAllByAssignmentIdOrderByCreatedAtAsc(Long assignmentId);
+    List<AssignmentFeedback> findAllByAssignmentIdOrderByCreatedAtAsc(List<Long> assignmentId);
 }
 
